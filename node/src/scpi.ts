@@ -54,6 +54,7 @@ class TcpSocketScpi extends Scpi {
     address: string;
     port: number;
     timeout: number;
+    listener: Function | null;
 
     constructor(address: string, port: number) {
         super()
@@ -62,19 +63,19 @@ class TcpSocketScpi extends Scpi {
         this.buffer = Buffer.alloc(0)
         this.socket = new Socket()
         this.socket.setNoDelay(true)
-        this.timeout = 1.0
+        this.timeout = 1000
+        this.listener = null;
 
         this.socket.on("data", (data) => {
-            this.buffer = Buffer.concat([this.buffer, data])
-        })
+            this.buffer = Buffer.concat([this.buffer, data]);
+            this.listener?.();
+        });
     }
 
     async open() {
         return new Promise<void>((resolve, reject) => {
-            this.socket.connect(this.port, this.address, () => {
-                resolve();
-            });
-            this.socket.on("error", (err) => reject(err));
+            this.socket.connect(this.port, this.address, resolve);
+            this.socket.once("error", reject);
         });
     }
 
@@ -86,34 +87,49 @@ class TcpSocketScpi extends Scpi {
             });
         });
     }
+    
+    async writeBytes(command: Buffer): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.socket.write(command, (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+    }
 
-    async writeBytes(command: Buffer) {
-        this.socket.write(command)
+    private pollBuffer(): Buffer | null {
+        const index = this.buffer.indexOf("\n");
+        if (index !== -1) {
+            const result = this.buffer.subarray(0, index);
+            this.buffer = this.buffer.subarray(index + 1);
+            return result;
+        }
+        return null;
     }
 
     async readBytes(): Promise<Buffer> {
         return new Promise((resolve, reject) => {
 
-            let remaining = this.timeout * 1000
+            // Check for data immediately
+            const content = this.pollBuffer();
+            if (content !== null) { resolve(content); }
 
-            const poll = () => {
-                const index = this.buffer.indexOf("\n");
-                if (index !== -1) {
-                    const result = this.buffer.subarray(0, index);
-                    this.buffer = this.buffer.subarray(index + 1);
-                    resolve(result);
-                } else {
-                    if (remaining > 0) {
-                        remaining -= 50;
-                        setTimeout(poll, 50);
-                    } else {
-                        reject("Read timeout")
-                    }
+            // No data. Setup a timeout
+            const timeout = setTimeout(() => {
+                this.listener = null;
+                reject(new Error("Read timeout"));
+            }, this.timeout);
+
+            // Now wait for an event to come in.
+            this.listener = () => {
+                const content = this.pollBuffer();
+                if (content !== null) {
+                    this.listener = null;
+                    clearTimeout(timeout);
+                    resolve(content);
                 }
-            };
-            // TODO, use event listeners or something instead of polling.
-            poll();
-        }); 
+            }
+        });
     }
 }
 

@@ -8,7 +8,9 @@ async function main() {
     let nautilus = new Nautilus();
     await nautilus.open()
     try {
-        console.log(await nautilus.getMac())
+        await nautilus.reset()
+        await nautilus.openI2c()
+        console.log((await nautilus.readEeprom(19)).toString())
     }
     catch (err) {
         console.log(err) 
