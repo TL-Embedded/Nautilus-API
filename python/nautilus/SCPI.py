@@ -1,4 +1,3 @@
-import serial
 import socket
 
 
@@ -10,7 +9,7 @@ class SCPI():
         self.write_bytes((command + "\n").encode())
 
     def read(self) -> str:
-        return self.read_bytes().decode()
+        return self.read_bytes().decode().strip()
     
     def query(self, command: str) -> str:
         self.write(command)
@@ -31,6 +30,9 @@ class SCPI():
 
 class SerialSCPI(SCPI):
     def __init__(self, path: str, baud: int):
+        # Defer loading of this module
+        # This avoids pyserial dependancy if not needed.
+        import serial
         self._port = serial.Serial(path, baud)
         self._port.timeout = 1.0
 

@@ -81,13 +81,13 @@ class Nautilus():
     # Networking commands
     
     def get_ip(self) -> str:
-        return self.scpi.query("SYST:NET:IPAD?").strip()
+        return self.scpi.query("SYST:NET:IPAD?")
     
     def get_mac(self) -> str:
-        return self.scpi.query("SYST:NET:MAC?").strip()
+        return self.scpi.query("SYST:NET:MAC?")
     
     def get_hostname(self) -> str:
-        return self.scpi.query("SYST:NET:NAME?").strip()
+        return self.scpi.query("SYST:NET:NAME?")
     
     def set_hostname(self, name: str):
         self.scpi.write(f"SYST:NET:NAME \"{name}\"")
@@ -165,7 +165,7 @@ class Nautilus():
     
     def write_i2c(self, address: int, payload: bytes) -> bool:
         result = self.scpi.query(f"AUX:IIC:WRITE {address}, {payload.hex()}")
-        return result.strip() == "ON"
+        return result == "ON"
     
     def transfer_i2c(self, address: int, payload: bytes, to_read: int) -> bytes:
         result = self.scpi.query(f"AUX:IIC:TRAN {address}, {payload.hex()}, {to_read}")
@@ -173,7 +173,7 @@ class Nautilus():
     
     def scan_i2c(self, address: int) -> bool:
         result = self.scpi.query(f"AUX:IIC:SCAN {address}")
-        return result.strip() == "ON"
+        return result == "ON"
 
     def scan_all_i2c(self) -> list[int]:
         return [ addr for addr in range(0x80) if self.scan_i2c(addr)]
@@ -211,7 +211,7 @@ class Nautilus():
         self.scpi.write(f"AUX:GPIO{pin}:SET {'ON' if state else 'OFF'}")
 
     def read_gpio(self, pin: int):
-        return self.scpi.query(f"AUX:GPIO{pin}:READ?").strip() == 'ON'
+        return self.scpi.query(f"AUX:GPIO{pin}:READ?") == 'ON'
 
     # Aux Servo commands
 
