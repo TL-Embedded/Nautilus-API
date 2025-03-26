@@ -1,6 +1,18 @@
 import { Socket } from 'net'
+import { SerialPort } from 'serialport'
 
 class Scpi {
+
+    protected listener: Function | null;
+    protected timeout: number;
+    protected buffer: Buffer;
+
+    constructor() {
+        this.listener = null;
+        this.timeout = 1000;
+        this.buffer = Buffer.alloc(0);
+    }
+
     async write(command: string) {
         await this.writeBytes( Buffer.from(command + "\n") )
     }
@@ -18,86 +30,19 @@ class Scpi {
         return this.query("*IDN?")
     }
 
+    async open() {
+        throw new Error("Not implemented")
+    }
+
+    async close() {
+        throw new Error("Not implemented")
+    }
+
     async writeBytes(command: Buffer) {
         throw new Error("Not implemented")
     }
 
-    async readBytes(): Promise<Buffer> {
-        throw new Error("Not implemented")
-    }
-
-    async open() {
-        throw new Error("Not implemented")
-    }
-
-    async close() {
-        throw new Error("Not implemented")
-    }
-}
-
-class SerialScpi extends Scpi {
-    constructor(path: string, baud: number) {
-        super();
-    }
-}
-
-class UdpSocketScpi extends Scpi {
-    constructor(path: string, port: number) {
-        super();
-    }
-}
-
-class TcpSocketScpi extends Scpi {
-
-    buffer: Buffer;
-    socket: Socket;
-    address: string;
-    port: number;
-    timeout: number;
-    listener: Function | null;
-
-    constructor(address: string, port: number) {
-        super()
-        this.address = address;
-        this.port = port;
-        this.buffer = Buffer.alloc(0)
-        this.socket = new Socket()
-        this.socket.setNoDelay(true)
-        this.timeout = 1000
-        this.listener = null;
-
-        this.socket.on("data", (data) => {
-            this.buffer = Buffer.concat([this.buffer, data]);
-            this.listener?.();
-        });
-    }
-
-    async open() {
-        return new Promise<void>((resolve, reject) => {
-            this.socket.connect(this.port, this.address, resolve);
-            this.socket.once("error", reject);
-        });
-    }
-
-    async close() {
-        return new Promise<void>((resolve) => {
-            this.socket.end(() => {
-                this.socket.destroy()
-                resolve()
-            });
-        });
-    }
-    
-    async writeBytes(command: Buffer): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.socket.write(command, (err) => {
-                if (err) reject(err);
-                else resolve();
-            });
-        });
-    }
-
-    private pollBuffer(): Buffer | null {
+    protected pollBuffer(): Buffer | null {
         const index = this.buffer.indexOf("\n");
         if (index !== -1) {
             const result = this.buffer.subarray(0, index);
@@ -129,6 +74,98 @@ class TcpSocketScpi extends Scpi {
                     resolve(content);
                 }
             }
+        });
+    }
+}
+
+class SerialScpi extends Scpi {
+
+    device: string;
+    baud: number;
+    serial: SerialPort;
+
+    constructor(device: string, baud: number) {
+        super();
+        this.device = device;
+        this.baud = baud;
+        this.serial = new SerialPort({ path: device, baudRate: baud });
+
+        this.serial.on("data", (data) => {
+            this.buffer = Buffer.concat([this.buffer, data]);
+            this.listener?.();
+        });
+    }
+
+    async open() {
+        // Do nothing. Open seems to happen automatically.
+    }
+
+    async close() {
+        return new Promise<void>((resolve, reject) => {
+            this.serial.close((err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+    }
+
+    async writeBytes(command: Buffer) {
+        return new Promise<void>((resolve, reject) => {
+            this.serial.write(command, (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+    }
+}
+
+class UdpSocketScpi extends Scpi {
+    constructor(path: string, port: number) {
+        super();
+    }
+}
+
+class TcpSocketScpi extends Scpi {
+
+    address: string;
+    port: number;
+    socket: Socket;
+
+    constructor(address: string, port: number) {
+        super()
+        this.address = address;
+        this.port = port;
+        this.socket = new Socket()
+        this.socket.setNoDelay(true)
+
+        this.socket.on("data", (data) => {
+            this.buffer = Buffer.concat([this.buffer, data]);
+            this.listener?.();
+        });
+    }
+
+    async open() {
+        return new Promise<void>((resolve, reject) => {
+            this.socket.connect(this.port, this.address, resolve);
+            this.socket.once("error", reject);
+        });
+    }
+
+    async close() {
+        return new Promise<void>((resolve) => {
+            this.socket.end(() => {
+                this.socket.destroy()
+                resolve()
+            });
+        });
+    }
+    
+    async writeBytes(command: Buffer) {
+        return new Promise<void>((resolve, reject) => {
+            this.socket.write(command, (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
         });
     }
 }

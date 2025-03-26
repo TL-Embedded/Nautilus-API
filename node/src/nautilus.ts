@@ -1,4 +1,5 @@
 import { Scpi, fromUri } from './scpi.js'
+import { SerialPort } from 'serialport';
 
 class Nautilus {
 
@@ -305,6 +306,18 @@ class Nautilus {
     async setServoAngle(pin: number, degrees: number) {
         let microseconds = ((degrees / 180.0) * 1000) + 1000
         return this.setServoPulse(pin, microseconds)
+    }
+
+    static async findUsbDevices(): Promise<string[]> {
+        const results = [];
+        const ports = await SerialPort.list();
+        for (const port of ports) {
+            // WARN: vid/pid are case sensitive
+            if (port.vendorId == '16d0' && port.productId == '13fd') {
+                results.push(`tty://${port.path}`);
+            }
+        }
+        return results;
     }
 
 }
