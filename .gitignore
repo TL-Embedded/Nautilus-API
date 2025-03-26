@@ -2,4 +2,4 @@ __pycache__/
 .venv/
 node_modules/
 dist/
-package-lock.json
+node/package/

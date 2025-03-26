@@ -9,8 +9,8 @@ async function main() {
     await nautilus.open()
     try {
         await nautilus.reset()
-        await nautilus.openI2c()
-        console.log((await nautilus.readEeprom(19)).toString())
+        console.log(await nautilus.getVin())
+        console.log(await nautilus.getTemperature())
     }
     catch (err) {
         console.log(err) 

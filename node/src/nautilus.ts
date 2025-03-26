@@ -169,7 +169,7 @@ class Nautilus {
         return hex2bytes(payload)
     }
 
-    async readSerialLine(delimiter = "\n", timeout = 0.0) {
+    async readSerialLine(delimiter: string = "\n", timeout: number = 0) {
         const start = Date.now();
         while (true) {
             this.serialBuffer = Buffer.concat([this.serialBuffer, await this.readSerial()]);
@@ -179,14 +179,14 @@ class Nautilus {
                 this.serialBuffer = this.serialBuffer.subarray(index + Buffer.from(delimiter).length);
                 return line;
             }
-            if (timeout > 0 && (Date.now() - start) / 1000 > timeout) {
+            if ((Date.now() - start) > timeout) {
                 return null;
             }
             await delay(50);
         }
     }
 
-    async readSerialBytes(count: number, timeout: number = 0.0) {
+    async readSerialBytes(count: number, timeout: number = 0) {
         const start = Date.now();
         while (true) {
             this.serialBuffer = Buffer.concat([this.serialBuffer, await this.readSerial()]);
@@ -195,7 +195,7 @@ class Nautilus {
                 this.serialBuffer = this.serialBuffer.subarray(count);
                 return data;
             }
-            if (timeout > 0 && (Date.now() - start) / 1000 > timeout) {
+            if ((Date.now() - start) > timeout) {
                 const data = this.serialBuffer;
                 this.serialBuffer = Buffer.alloc(0);
                 return data;

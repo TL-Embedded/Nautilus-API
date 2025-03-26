@@ -2,5 +2,38 @@
   "devDependencies": {
     "ts-node": "^10.9.2"
   },
-  "type": "commonjs"
+  "type": "commonjs",
+  "name": "@tl-embedded/nautilus",
+  "version": "1.0.0",
+  "description": "API for Nautilus test fixtures",
+  "main": "dist/nautilus.js",
+  "types": "dist/nautilus.d.ts",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "acorn": "^8.14.1",
+    "acorn-walk": "^8.3.4",
+    "arg": "^4.1.3",
+    "create-require": "^1.1.1",
+    "diff": "^4.0.2",
+    "make-error": "^1.3.6",
+    "typescript": "^5.8.2",
+    "undici-types": "^6.20.0",
+    "v8-compile-cache-lib": "^3.0.1",
+    "yn": "^3.1.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TL-Embedded/Nautilus-API.git"
+  },
+  "author": "Tim Lamborn",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/TL-Embedded/Nautilus-API/issues"
+  },
+  "homepage": "https://github.com/TL-Embedded/Nautilus-API#readme"
 }
