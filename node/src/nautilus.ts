@@ -31,7 +31,7 @@ class Nautilus {
     async isPresent(throwOnError: boolean = false): Promise<boolean> {
         const success = (await this.scpi.getIdn()).startsWith("TL Embedded, Nautilus,")
         if (throwOnError && !success) {
-            throw new Error("Nautilus not found!")
+            throw new Error("Nautilus not found")
         }
         return success;
     }

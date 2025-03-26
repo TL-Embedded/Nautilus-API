@@ -7,7 +7,7 @@ class Nautilus():
         self.scpi = SCPI.from_uri(uri)
 
     def __enter__(self):
-        self.is_present(True)
+        self.open()
         return self
     
     def __exit__(self, *args):
@@ -19,6 +19,9 @@ class Nautilus():
         if throw_on_error and not success:
             raise Exception("Nautilus not found")
         return success
+    
+    def open(self):
+        self.is_present(True)
 
     def close(self):
         self.scpi.close()
