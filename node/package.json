@@ -4,7 +4,7 @@
   },
   "type": "commonjs",
   "name": "@tl-embedded/nautilus",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "API for Nautilus test fixtures",
   "main": "dist/nautilus.js",
   "types": "dist/nautilus.d.ts",
