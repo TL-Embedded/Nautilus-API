@@ -5,6 +5,8 @@ import time
 class Nautilus():
     def __init__(self, uri: str = "tcp://nautilus.local"):
         self.scpi = SCPI.from_uri(uri)
+        self.version = 0.0
+        self.input_freq: float|None = None
 
     def __enter__(self):
         self.open()
@@ -13,17 +15,19 @@ class Nautilus():
     def __exit__(self, *args):
         self.close()
 
-    def is_present(self, throw_on_error: bool = False) -> bool:
+    def get_version(self) -> str:
+        idn = self.scpi.get_idn()
         # TL Embedded, Nautilus, 001C00484331500120373358, v0.1
-        success = self.scpi.get_idn().startswith("TL Embedded, Nautilus,")
-        if throw_on_error and not success:
-            raise Exception("Nautilus not found")
-        return success
-    
-    def open(self):
-        self.is_present(True)
+        if idn.startswith("TL Embedded, Nautilus,"):
+            return float(idn.split(", ")[-1][1:])
+        raise Exception("Nautilus not found")
 
-    def close(self):
+    def open(self):
+        self.version = self.get_version()
+
+    def close(self, reset: bool = True):
+        if reset:
+            self.reset()
         self.scpi.close()
 
     def reset(self):
@@ -31,7 +35,14 @@ class Nautilus():
 
     # ADC input commands
 
-    def get_input_voltage(self, channel: int) -> float:
+    def set_input_frequency(self, frequency: float):
+        if self.version >= 1.0:
+            self.scpi.write(f"INP:FREQ {frequency:.3f}Hz")
+        self.input_freq = frequency
+
+    def get_input_voltage(self, channel: int, frequency: float|None = None) -> float:
+        if frequency is not None and self.input_freq != frequency:
+            self.set_input_frequency(frequency)
         return float(self.scpi.query(f"INP{channel}:VOLT?"))
     
     # DAC output commands
@@ -57,9 +68,13 @@ class Nautilus():
         self.scpi.write(f"POW{channel}:ENA {'ON' if enable else 'OFF'}")
     
     def set_psu(self, channel: int, enable: bool, volts: float, amps: float):
-        self.set_psu_voltage(channel, volts)
-        self.set_psu_current(channel, amps)
-        self.set_psu_enable(channel, enable)
+        if self.version >= 1.0:
+            self.scpi.write(f"POW{channel}:SET {'ON' if enable else 'OFF'}, {volts:.3f}V, {amps:.3f}A")
+        else:
+            self.set_psu_voltage(channel, volts)
+            self.set_psu_current(channel, amps)
+            self.set_psu_enable(channel, enable)
+        
 
     def get_psu_voltage(self, channel: int) -> float:
         return float(self.scpi.query(f"POW{channel}:MEAS:VOLT?"))

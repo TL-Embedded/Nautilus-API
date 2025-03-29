@@ -4,37 +4,44 @@ import { SerialPort } from 'serialport';
 class Nautilus {
 
     scpi: Scpi;
+    version: number;
+    input_freq: number | null;
     private serialBuffer: Buffer;
 
     constructor (uri: string = "tcp://nautilus.local") {
         this.scpi = fromUri(uri);
         this.serialBuffer = Buffer.alloc(0);
+        this.version = 0.0;
+        this.input_freq = null;
     }
 
     async open() {
         await this.scpi.open();
 
         try {
-            await this.isPresent(true)
+            this.version = await this.getVersion();
         }
         catch (err) {
-            // If we get an error during open, we really want to leave the transport closed.
+            // If we get an error during detection, we really want to leave the transport closed.
             await this.scpi.close()
             throw err;
         }
     }
 
-    async close() {
-        await this.reset()
+    async close(reset: boolean = true) {
+        if (reset) {
+            await this.reset()
+        }
         await this.scpi.close()
     }
 
-    async isPresent(throwOnError: boolean = false): Promise<boolean> {
-        const success = (await this.scpi.getIdn()).startsWith("TL Embedded, Nautilus,")
-        if (throwOnError && !success) {
-            throw new Error("Nautilus not found")
+    async getVersion(): Promise<number> {
+        const idn = await this.scpi.getIdn();
+        // TL Embedded, Nautilus, 001C00484331500120373358, v0.1
+        if (idn.startsWith("TL Embedded, Nautilus")) {
+            return parseFloat(idn.split(',')[3].split('v')[1]);
         }
-        return success;
+        throw new Error("Nautilus not found")
     }
 
     async reset() {
@@ -43,8 +50,18 @@ class Nautilus {
 
     // ADC input commands
 
-    async getInputVoltage(channel: number): Promise<number> {
+    async setInputFrequency(frequency: number) {
+        if (this.version >= 1.0) {
+            await this.scpi.write(`INP:FREQ ${frequency}Hz`)
+        }
+        this.input_freq = frequency;
+    }
+
+    async getInputVoltage(channel: number, frequency: number|null = null): Promise<number> {
         assertChannel(channel, 12);
+        if (frequency !== null && frequency !== this.input_freq) {
+            await this.setInputFrequency(frequency);
+        }
         return parseFloat( await this.scpi.query(`INP${channel}:VOLT?`) )
     }
 
@@ -83,11 +100,15 @@ class Nautilus {
     }
 
     async setPsu(channel: number, enable: boolean, volts: number, amps: number) {
-        //assertChannel(channel, 2)
-        //await this.scpi.write(`POW${channel}:SET ${b2s(enable)}, ${n2s(volts)}V, ${n2s(amps)}A`)
-        await this.setPsuVoltage(channel, volts)
-        await this.setPsuCurrent(channel, amps)
-        await this.setPsuEnable(channel, enable)
+        if (this.version >= 1.0) {
+            assertChannel(channel, 2)
+            await this.scpi.write(`POW${channel}:SET ${enable?"ON":"OFF"}, ${volts.toFixed(3)}V, ${amps.toFixed(3)}A`)
+        }
+        else {
+            await this.setPsuVoltage(channel, volts)
+            await this.setPsuCurrent(channel, amps)
+            await this.setPsuEnable(channel, enable)
+        }
     }
 
     async getPsuVoltage(channel: number): Promise<number> {
