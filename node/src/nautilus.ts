@@ -335,7 +335,7 @@ class Nautilus {
         for (const port of ports) {
             // WARN: vid/pid are case sensitive
             if (port.vendorId == '16d0' && port.productId == '13fd') {
-                results.push(`tty://${port.path}`);
+                results.push(`tty:${port.path}`);
             }
         }
         return results;

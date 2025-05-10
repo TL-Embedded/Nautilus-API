@@ -171,13 +171,17 @@ class TcpSocketScpi extends Scpi {
 }
 
 function fromUri(uri: string, baud: number = 9600, port: number = 5025, isTcp: boolean = false): Scpi {
-    const [scheme, address] = uri.split('://');
-    const [addr, args] = address.includes(':') ? address.split(':') : [address, null];
+    
+    const components = uri.split(':');
+    const scheme = components[0];
+    let address = components[1]
+    const args = components[2] || null;
 
     if (scheme === 'tty') {
         if (args) { baud = parseInt(args) }
-        return new SerialScpi(addr, baud);
+        return new SerialScpi(address, baud);
     } else if (['tcp', 'udp', 'ip'].includes(scheme)) {
+        address = address.replace("//", "")
         if (scheme != 'ip') { isTcp = scheme != 'udp' }
         if (args) { port = parseInt(args) }
         if (isTcp) {

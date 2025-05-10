@@ -266,5 +266,5 @@ class Nautilus():
         from serial.tools.list_ports import comports
         for port in comports():
             if port.vid == 0x16D0 and port.pid == 0x13FD:
-                results.append(f"tty://{port.device}")
+                results.append(f"tty:{port.device}")
         return results

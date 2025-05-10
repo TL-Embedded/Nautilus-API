@@ -80,11 +80,10 @@ def from_uri(uri: str, baud: int = 9600, port: int = 5025, is_tcp: bool = True) 
         # assume the given object was already a scpi object
         return uri
 
-    scheme, address = uri.split("://")
-    if ":" in address:
-        address, args = address.split(':')
-    else:
-        args = None
+    components = uri.split(":")
+    scheme = components[0]
+    address = components[1]
+    args = components[2] if len(components) > 2 else None
 
     if scheme == "tty":
         if args:
@@ -92,6 +91,7 @@ def from_uri(uri: str, baud: int = 9600, port: int = 5025, is_tcp: bool = True) 
         return SerialSCPI(address, baud)
 
     if scheme in ["udp", "tcp", "ip"]:
+        address = address.removeprefix("//")
         if args:
             port = int(args)
         if scheme != "ip":
