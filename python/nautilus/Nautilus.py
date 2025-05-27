@@ -1,6 +1,6 @@
 from . import SCPI
 import time
-
+from typing import Callable
 
 class Nautilus():
     def __init__(self, uri: str = "tcp://nautilus.local"):
@@ -15,7 +15,7 @@ class Nautilus():
     def __exit__(self, *args):
         self.close()
 
-    def get_version(self) -> str:
+    def get_version(self) -> float:
         idn = self.scpi.get_idn()
         # TL Embedded, Nautilus, 001C00484331500120373358, v0.1
         if idn.startswith("TL Embedded, Nautilus,"):
@@ -248,17 +248,54 @@ class Nautilus():
 
     # Calibration commands
     # These should only be used with the appropriate jig...
-    
     def calibrate_output(self, channel: int, setpoint_a: float = 1.0, setpoint_b: float = 11.0):
         self.set_output_enable(channel, True)
-        self.scpi.write( f"OUT{channel}:VOLT:UNCAL {setpoint_a:.3f}V" )
+        self.scpi.write( f"OUT{channel}:VOLT:CAL \"set\", {setpoint_a:.3f}V" )
         time.sleep(0.5)
         result_a = self.get_input_voltage(channel)
-        self.scpi.write( f"OUT{channel}:VOLT:UNCAL {setpoint_b:.3f}V" )
+        self.scpi.write( f"OUT{channel}:VOLT:CAL \"set\", {setpoint_b:.3f}V" )
         time.sleep(0.5)
         result_b = self.get_input_voltage(channel)
         self.set_output_enable(channel, False)
-        self.scpi.write( f"OUT{channel}:VOLT:CAL {setpoint_a:.3f}V, {result_a:.3f}V, {setpoint_b:.3f}V, {result_b:.3f}V" )
+        self.scpi.write( f"OUT{channel}:VOLT:CAL \"cal\", {setpoint_a:.3f}V, {result_a:.3f}V, {setpoint_b:.3f}V, {result_b:.3f}V" )
+
+    def calibrate_psu_voltage(self, channel: int, get_voltage: Callable[[],int], setpoint_a: float = 3.0, setpoint_b: float = 11.0):
+        self.scpi.write(f"POW{channel}:CURR:CAL \"set\", 0.5A")
+        self.scpi.write(f"POW{channel}:VOLT:CAL \"set\", {setpoint_a:.3f}V")
+        self.set_psu_enable(channel, True)
+        time.sleep(1.0)
+        result_a = get_voltage()
+        meas_a = float(self.scpi.query(f"POW{channel}:MEAS:VOLT:CAL \"get\""))
+        self.scpi.write(f"POW{channel}:VOLT:CAL \"set\", {setpoint_b:.3f}V")
+        time.sleep(1.0)
+        result_b = get_voltage()
+        meas_b = float(self.scpi.query(f"POW{channel}:MEAS:VOLT:CAL \"get\""))
+        self.set_psu_enable(channel, False)
+
+        self.scpi.write(f"POW{channel}:VOLT:CAL \"cal\", {setpoint_a:.3f}V, {result_a:.3f}V, {setpoint_b:.3f}V, {result_b:.3f}V")
+        self.scpi.write(f"POW{channel}:MEAS:VOLT:CAL \"cal\", {setpoint_a:.3f}V, {meas_a:.3f}V, {setpoint_b:.3f}V, {meas_b:.3f}V")
+
+    def calibrate_psu_current(self, channel: int, get_current: Callable[[],int], setpoint_a: float = 0.5, setpoint_b: float = 2.0):
+        self.scpi.write(f"POW{channel}:VOLT:CAL \"set\", 5.0V")
+        self.scpi.write(f"POW{channel}:CURR:CAL \"set\", {setpoint_a:.3f}A")
+        self.set_psu_enable(channel, True)
+        time.sleep(1.0)
+        result_a = get_current()
+        meas_a = float(self.scpi.query(f"POW{channel}:MEAS:CURR:CAL \"get\""))
+        self.scpi.write(f"POW{channel}:CURR:CAL \"set\", {setpoint_b:.3f}A")
+        time.sleep(1.0)
+        result_b = get_current()
+        meas_b = float(self.scpi.query(f"POW{channel}:MEAS:CURR:CAL \"get\""))
+        self.set_psu_enable(channel, False)
+
+        self.scpi.write(f"POW{channel}:CURR:CAL \"cal\", {setpoint_a:.3f}A, {result_a:.3f}A, {setpoint_b:.3f}A, {result_b:.3f}A")
+        self.scpi.write(f"POW{channel}:MEAS:CURR:CAL \"cal\", {setpoint_a:.3f}A, {meas_a:.3f}A, {setpoint_b:.3f}A, {meas_b:.3f}A")
+
+    def calibrate_psu_reset(self, channel: int):
+        self.scpi.write(f"POW{channel}:VOLT:CAL \"cal\", 0V, 0V, 24V, 24V")
+        self.scpi.write(f"POW{channel}:CURR:CAL \"cal\", 0A, 0A, 3A, 3A")
+        self.scpi.write(f"POW{channel}:MEAS:VOLT:CAL \"cal\", 0V, 0V, 24V, 24V")
+        self.scpi.write(f"POW{channel}:MEAS:CURR:CAL \"cal\", 0A, 0A, 3A, 3A")
 
     @staticmethod
     def find_usb_devices() -> list[str]:
