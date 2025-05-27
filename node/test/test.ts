@@ -9,8 +9,10 @@ async function main() {
     await nautilus.open()
     try {
         await nautilus.reset()
-        console.log(await nautilus.getVin())
-        console.log(await nautilus.getTemperature())
+        console.log(`version: ${await nautilus.getVersion()}`)
+        console.log(`mac: ${await nautilus.getMac()}`)
+        console.log(`vin: ${await nautilus.getVin()} V`)
+        console.log(`temp: ${await nautilus.getTemperature()} C`)
     }
     catch (err) {
         console.log(err) 
