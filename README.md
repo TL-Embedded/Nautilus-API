@@ -11,6 +11,10 @@ If using the nautilus over serial, you will need to install `pyserial`.
 Available as a node module:
 `npm install @tl-embedded/nautilus`
 
+# Manual implementation
+
+The device uses subset of standard SCPI commands, and should be compatible with existing SCPI command runners.
+The command set is [documented here](./command-list.md).
 
 # Pinout
 
