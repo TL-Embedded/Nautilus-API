@@ -174,7 +174,7 @@ class Nautilus():
         self.scpi.write(f"AUX:IIC:SPEED {int(speed)}")
         self.scpi.write(f"AUX:IIC:ENA ON")
 
-    def close_i2C(self):
+    def close_i2c(self):
         self.scpi.write("AUX:IIC:ENA OFF")
 
     def read_i2c(self, address: int, to_read: int) -> bytes:
