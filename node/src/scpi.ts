@@ -138,7 +138,7 @@ class TcpSocketScpi extends Scpi {
         this.socket = new Socket()
         this.socket.setNoDelay(true)
 
-        this.socket.on("data", (data) => {
+        this.socket.on("data", (data: Buffer) => {
             this.buffer = Buffer.concat([this.buffer, data]);
             this.listener?.();
         });
