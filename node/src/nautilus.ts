@@ -295,6 +295,39 @@ class Nautilus {
         return true;
     }
 
+    // Aux SPI commands
+
+    async openSpi(speed: number = 8000000, mode: number = 0) {
+        if (this.version < 1.3)
+            throw new Error("v1.3 firmware required for SPI support")
+        await this.scpi.write(`AUX:SPI:MODE ${mode}`)
+        await this.scpi.write(`AUX:SPI:SPEED ${speed}`)
+        await this.scpi.write("AUX:SPI:ENA ON")
+    }
+
+    async getSpiSpeed() {
+        const result = await this.scpi.query("AUX:SPI:SPEED?")
+        return parseInt(result) 
+    }
+
+    async closeSpi() {
+        await this.scpi.write("AUX:SPI:ENA OFF");
+    }
+
+    async readSpi(toRead: number) {
+        const result = await this.scpi.query(`AUX:SPI:READ ${toRead}`);
+        return hex2bytes(result);
+    }
+
+    async writeSpi(payload: Buffer) {
+        await this.scpi.write(`AUX:SPI:WRITE ${bytes2hex(payload)}`);
+    }
+
+    async transferSpi(payload: Buffer) {
+        const result = await this.scpi.query(`AUX:SPI:TRAN ${bytes2hex(payload)}`);
+        return hex2bytes(result);
+    }
+
     // Aux GPIO commands
 
     async setGpio(pin: number, state: boolean) {

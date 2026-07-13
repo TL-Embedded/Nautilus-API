@@ -199,6 +199,33 @@ class Nautilus():
     def read_eeprom(self, count: int = 16, address: int = 0x50, offset: int = 0) -> bytes:
         return self.transfer_i2c(address, bytes([offset]), count )
     
+    # Aux SPI commands
+
+    def open_spi(self, speed: int = 8000000, mode: int = 0):
+        if self.version < 1.3:
+            raise Exception("v1.3 firmware required for SPI support")
+        self.scpi.write(f"AUX:SPI:SPEED {int(speed)}")
+        self.scpi.write(f"AUX:SPI:MODE {int(mode)}")
+        self.scpi.write("AUX:SPI:ENA ON")
+
+    def get_spi_speed(self) -> int:
+        result = self.scpi.query("AUX:SPI:SPEED?")
+        return int(result)
+
+    def close_spi(self):
+        self.scpi.write("AUX:SPI:ENA OFF")
+
+    def read_spi(self, to_read: int) -> bytes:
+        result = self.scpi.query(f"AUX:SPI:READ {int(to_read)}")
+        return bytes.fromhex(result)
+
+    def write_spi(self, payload: bytes):
+        self.scpi.write(f"AUX:SPI:WRITE {payload.hex()}")
+    
+    def transfer_spi(self, payload: bytes) -> bytes:
+        result = self.scpi.query(f"AUX:SPI:TRAN {payload.hex()}")
+        return bytes.fromhex(result)
+
     # Default settings support the 24AA01 EEPROMs
     def write_eeprom(self, payload: bytes, address: int = 0x50, offset: int = 0, pagesize: int = 8) -> bool:
         index = 0

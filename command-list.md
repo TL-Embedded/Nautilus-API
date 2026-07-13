@@ -572,6 +572,103 @@ AUX:IIC:SCAN 80
 ON
 ```
 
+## SPI Enable
+
+Format:
+ * `AUXillary:SPI:ENAble <b>`
+ * `AUXillary:SPI:ENAble?`
+
+Enables or disables SPI.
+
+Example:
+```
+AUX:SPI:ENA ON
+AUX:SPI:ENA?
+ON
+```
+
+## SPI Speed
+
+Format:
+ * `AUXillary:SPI:SPEED <i>`
+ * `AUXillary:SPI:SPEED?`
+
+Sets or queries the SPI bus speed.
+The speed may be truncated to a valid SPI bus speed when the SPI is enabled.
+
+Example:
+```
+AUX:IIC:SPEED 8000000
+AUX:IIC:SPEED?
+8000000
+```
+
+## SPI Mode
+
+Format:
+ * `AUXillary:SPI:MODE <i>`
+ * `AUXillary:SPI:MODE?`
+
+Sets or queries the SPI bus mode.
+
+Example:
+```
+AUX:IIC:MODE 0
+AUX:IIC:MODE?
+0
+```
+
+## SPI Read
+
+Format:
+ * `AUXillary:SPI:READ <i>`
+
+Reads bytes from the SPI bus.
+
+| Parameter | Type | Range   | Description         |
+| --------- | ---- | ------- | ------------------- |
+| Length    | i    | 0 - 256 | Number of bytes     |
+
+Example:
+```
+AUX:SPI:READ 4
+01020304
+```
+
+## SPI Write
+
+Format:
+ * `AUXillary:SPI:WRITE <x>`
+
+Writes bytes to the SPI bus
+
+| Parameter | Type | Range   | Description            |
+| --------- | ---- | ------- | ---------------------- |
+| Data      | x    |         | Bytes to write         |
+
+Example:
+```
+AUX:SPI:WRITE 01020304
+```
+
+
+## SPI Transfer
+
+Format:
+ * `AUXillary:SPI:TRANsfer <x>`
+
+Performs a read/write on the SPI bus
+
+| Parameter | Type | Range   | Description                 |
+| --------- | ---- | ------- | --------------------------- |
+| TX Data   | x    |         | Written bytes               |
+
+Example:
+```
+AUX:SPI:TRAN 0102
+0304
+```
+
 ## GPIO Set
 
 Format:
