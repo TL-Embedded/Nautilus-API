@@ -216,15 +216,36 @@ class Nautilus():
         self.scpi.write("AUX:SPI:ENA OFF")
 
     def read_spi(self, to_read: int) -> bytes:
+
+        if to_read > 256:
+            self.buffer_spi(0, 0, 0, to_read)
+            return self.read_buffer(0, to_read)
+
         result = self.scpi.query(f"AUX:SPI:READ {int(to_read)}")
         return bytes.fromhex(result)
 
     def write_spi(self, payload: bytes):
+
+        if len(payload) > 256:
+            self.write_buffer(0, payload)
+            self.buffer_spi(0, len(payload), 0, 0)
+            return
+
         self.scpi.write(f"AUX:SPI:WRITE {payload.hex()}")
     
     def transfer_spi(self, payload: bytes) -> bytes:
+
+        if len(payload) > 256:
+            self.write_buffer(0, payload)
+            self.buffer_spi(0, len(payload), 0, len(payload))
+            return self.read_buffer(0, len(payload))
+
         result = self.scpi.query(f"AUX:SPI:TRAN {payload.hex()}")
+        print(result)
         return bytes.fromhex(result)
+
+    def buffer_spi(self, tx_offset: int, tx_size: int, rx_offset: int, rx_size: int):
+        self.scpi.query(f"AUX:SPI:TRAN:BUF {int(tx_offset)}, {int(tx_size)}, {int(rx_offset)}, {int(rx_size)}")
 
     # Default settings support the 24AA01 EEPROMs
     def write_eeprom(self, payload: bytes, address: int = 0x50, offset: int = 0, pagesize: int = 8) -> bool:
@@ -272,6 +293,37 @@ class Nautilus():
     def set_servo_angle(self, pin: int, angle_deg: float):
         period_us = ((angle_deg / 180.0) * 1000) + 1000
         self.set_servo_pulse(pin, period_us)
+
+    # Buffer commands
+
+    def read_buffer(self, offset: int, size: int) -> bytes:
+        if self.version < 1.5:
+            raise Exception("Firmware v1.5 is required for buffer support")
+
+        data = bytes()
+        while size:
+            chunk = min(size, 256)
+            reply = self.scpi.query(f"BUF:READ {int(offset)}, {int(chunk)}")
+            data += bytes.fromhex(reply)
+
+            size -= chunk
+            offset += chunk
+        return data
+
+    def write_buffer(self, offset: int, data: bytes):
+        if self.version < 1.5:
+            raise Exception("Firmware v1.5 is required for buffer support")
+
+        pos = 0
+        size = len(data)
+        while size:
+            chunk = min(size, 256)
+            s = self.scpi.query(f"BUF:WRITE {int(offset) + pos}, {data[pos:pos+chunk].hex()}")
+            if int(s) != chunk:
+                raise Exception("Write buffer did not return expected size")
+
+            pos += chunk
+            size -= chunk
 
     # Calibration commands
     # These should only be used with the appropriate jig...
