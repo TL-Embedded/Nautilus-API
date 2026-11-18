@@ -45,7 +45,7 @@ The pinout of the 50 pin IDC connector is below:
 | VDDIO       | 41  | 42  | GND         |
 | SHIFT.CLK   | 43  | 44  | SHIFT.DAT   |
 | SHIFT.LATCH | 45  | 46  | SER.DIR     |
-| SER.TX      | 48  | 48  | SER.RX      |
+| SER.TX      | 47  | 48  | SER.RX      |
 | I2C.SCL     | 49  | 50  | I2C.SDA     |
 
 
